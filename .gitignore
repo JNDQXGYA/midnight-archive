@@ -1,0 +1,29 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Local machine configuration
+config.local.pl
+.env
+
+# Generated planner files
+runtime/*
+!runtime/.gitkeep
+*.soln
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+
+# Temporary office files
+~$*
+
+# Logs and crash dumps
+*.log
+*.dmp
