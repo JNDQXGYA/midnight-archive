@@ -1,0 +1,13 @@
+; Pyperplan 2.1 BFS output, verified by verify_reference.py.
+(move_thief vault archive)
+(move_thief archive atrium)
+(move_thief atrium observatory)
+(move_warden archive atrium)
+(move_warden atrium entrance)
+(move_warden entrance gallery)
+(move_warden gallery gatehouse)
+(mark_carrier observatory)
+(seal_exit gatehouse)
+(move_warden gatehouse gallery)
+(move_warden gallery observatory)
+(capture_carrier observatory)

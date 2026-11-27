@@ -1,0 +1,6 @@
+; Pyperplan 2.1 BFS output, verified by verify_reference.py.
+(mark_carrier observatory)
+(seal_exit gatehouse)
+(move_warden gatehouse gallery)
+(move_warden gallery observatory)
+(capture_carrier observatory)

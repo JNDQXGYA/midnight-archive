@@ -6,7 +6,7 @@ JC4002 Knowledge Representation 四人小组项目。项目目标是使用 SWI-P
 
 ## 当前状态
 
-当前提交仅包含项目骨架、协作规约和课程提供的 Pyperplan 调用起始代码。游戏与 PDDL 模型尚未实现，因此暂时不能按完整游戏运行。
+当前分支已包含乙负责的 PDDL 领域、默认问题和独立规划测试。Prolog 游戏核心、规划器运行时集成与文字界面仍为骨架，因此项目尚不能按完整游戏运行。
 
 ## 成员与职责
 
@@ -32,6 +32,17 @@ JC4002 Knowledge Representation 四人小组项目。项目目标是使用 SWI-P
 
 不使用数值流、条件效果、否定前置条件、动作代价或时间动作。若教学机器无法支持统一版本，必须由全组共同决定调整，并在调整之后重新执行全部测试。
 
+## PDDL 模型与测试
+
+乙负责的领域模型位于 `adversary_domain.pddl`，默认开局问题位于 `adversary_problem.pddl`。从仓库根目录执行以下命令可验证默认、目标变化与协作场景：
+
+```powershell
+python -m unittest discover -s tests/pddl -v
+python pddl_cases/tools/verify_reference.py
+```
+
+具体动作语义、样例计划、连续回合演示与甲、丙联调接口见 [pddl_cases/README.md](pddl_cases/README.md)。
+
 ## 项目结构
 
 ```text
@@ -52,11 +63,14 @@ midnight-archive/
 ├── config.pl                    # 可提交的公共配置
 ├── ui.pl                        # 地图、状态与事件输出
 ├── content.pl                   # 房间、物品与剧情文本
-├── pddl_cases/                  # 默认、目标变化与协作规划测试
+├── pddl_cases/                  # 乙的规划测试、样例计划与说明
+│   ├── tools/                   # 独立验证与连续回合演示脚本
+│   └── README.md                # PDDL 模型、复现与联调说明
 ├── tests/
 │   ├── unit/                    # Prolog 单元测试
 │   ├── integration/             # 规划器与游戏集成测试
-│   └── fixtures/                # 固定状态、输入与预期输出
+│   ├── fixtures/                # 固定状态、输入与预期输出
+│   └── pddl/                    # 乙的 PDDL 模型测试
 ├── docs/
 │   └── assets/                  # 报告地图、流程图与展示材料
 ├── runtime/                     # 本地动态问题与计划文件，不提交生成物

@@ -1,0 +1,18 @@
+; Deliberate regression copy of the default game-start problem.
+(define (problem midnight_archive_default_case)
+  (:domain midnight_archive_adversaries)
+  (:objects vault archive atrium observatory entrance gallery gatehouse - location)
+  (:init
+    (link vault archive) (link archive vault)
+    (link archive atrium) (link atrium archive)
+    (link atrium observatory) (link observatory atrium)
+    (link atrium entrance) (link entrance atrium)
+    (link observatory gallery) (link gallery observatory)
+    (link entrance gallery) (link gallery entrance)
+    (link gallery gatehouse) (link gatehouse gallery)
+    (exit gatehouse) (vault_room vault)
+    (thief_at vault) (warden_at archive) (player_at entrance)
+    (core_at observatory) (phase_race) (carrier_unmarked) (exit_unsealed)
+  )
+  (:goal (and (core_secured) (warden_at gatehouse)))
+)
