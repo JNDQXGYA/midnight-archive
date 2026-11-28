@@ -153,6 +153,23 @@ advance_plan(+Plan, -Rest)
 | `planner_error(no_planner, _)` | 没找到规划器 | 提示安装，走回退，**不得假装成功** |
 | `planner_error(N, Msg)` | 规划器自身报错 | 记日志，走回退 |
 
+### 3.1 执行层（adversary_execution.pl）
+
+```prolog
+legal_action(+Atoms, +Action)                    % 只读检查，不改世界
+missing_preconditions(+Atoms, +Action, -Missing) % 诊断：缺哪个原子
+apply_action(+Atoms, +Action, -Atoms2)
+simulate_plan(+Atoms, +Plan, -Atoms2)            % 整条计划能不能走完
+adversary_turn(+Atoms, +Options, -Events, -Atoms2)
+```
+
+`adversary_turn/4` 一手包办"缓存有效就用、失效就重规划、重规划失败就回退"。
+它不直接改真实世界：调用方拿返回的 `Atoms2` 去更新自己的状态。
+
+**一条纪律**：`preconditions/2` 与 `effect/3` 必须和 `adversary_domain.pddl` 一致。
+乙改 domain 的前置条件，丙这边必须同步改，否则会出现"规划器认为合法、运行时认为非法"，
+每回合都退化成回退分支。这条写进报告的"局限与取舍"里，比藏着好。
+
 ---
 
 ## 4. 丙 ↔ 丁：事件项

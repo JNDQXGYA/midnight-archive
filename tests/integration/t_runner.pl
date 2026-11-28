@@ -30,28 +30,36 @@ main :-
     (   F =:= 0 -> halt(0) ; halt(1) ).
 
 solvable_spec(spec('runner_solvable', 'mock_archive',
-                   [ loc-[vault, archive, atrium],
-                     thing-[star_core]
+                   [ loc-[vault, archive, atrium, entrance],
+                     mode-[race, recover, locked, open, sealed, unmarked, marked]
                    ],
                    [ link(vault, archive),
                      link(archive, atrium),
-                     thief_at(vault),
-                     warden_at(atrium),
-                     at(star_core, atrium)
+                     at_player(entrance),
+                     at_thief(vault),
+                     at_warden(atrium),
+                     at_core(atrium),
+                     phase(race),
+                     gate(locked),
+                     carrier(unmarked)
                    ],
-                   [ holding_thief(star_core) ])).
+                   [ thief_holds_core ])).
 
 % 星核不在任何地方 => take_core 永远不可用 => 无解
 unsolvable_spec(spec('runner_unsolvable', 'mock_archive',
-                     [ loc-[vault, archive, atrium],
-                       thing-[star_core]
+                     [ loc-[vault, archive, atrium, entrance],
+                       mode-[race, recover, locked, open, sealed, unmarked, marked]
                      ],
                      [ link(vault, archive),
                        link(archive, atrium),
-                       thief_at(vault),
-                       warden_at(atrium)
+                       at_player(entrance),
+                       at_thief(vault),
+                       at_warden(atrium),
+                       phase(race),
+                       gate(locked),
+                       carrier(unmarked)
                      ],
-                     [ holding_thief(star_core) ])).
+                     [ thief_holds_core ])).
 
 % 1. 陈旧 .soln
 run_stale(Domain) :-

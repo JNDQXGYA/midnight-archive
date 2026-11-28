@@ -27,18 +27,22 @@ main :-
     ),
     (   F =:= 0 -> halt(0) ; halt(1) ).
 
-% 与正式游戏同构的最小世界：两个对手，一个目标。
+% 与 mock_domain.pddl 同构的最小世界：两个对手，一个目标。
 mock_spec(spec('mock_1_1', 'mock_archive',
-               [ loc-[vault, archive, atrium],
-                 thing-[star_core]
+               [ loc-[vault, archive, atrium, entrance],
+                 mode-[race, recover, locked, open, sealed, unmarked, marked]
                ],
                [ link(vault, archive),
                  link(archive, atrium),
-                 thief_at(vault),
-                 warden_at(atrium),
-                 at(star_core, atrium)
+                 at_player(entrance),
+                 at_thief(vault),
+                 at_warden(atrium),
+                 at_core(atrium),
+                 phase(race),
+                 gate(locked),
+                 carrier(unmarked)
                ],
-               [ holding_thief(star_core) ])).
+               [ thief_holds_core ])).
 
 test_render(Spec) :-
     check(( render_problem(Spec, T),
@@ -48,10 +52,10 @@ test_render(Spec) :-
             sub_string(T, _, _, _, "(:domain mock_archive)") ),
           'render: domain name'),
     check(( render_problem(Spec, T),
-            sub_string(T, _, _, _, "(thief_at vault)") ),
+            sub_string(T, _, _, _, "(at_thief vault)") ),
           'render: init fact'),
     check(( render_problem(Spec, T),
-            sub_string(T, _, _, _, "star_core - thing") ),
+            sub_string(T, _, _, _, "vault archive atrium entrance - loc") ),
           'render: typed objects'),
     check(( render_problem(Spec, T),
             \+ sub_string(T, _, _, _, "\r") ),
