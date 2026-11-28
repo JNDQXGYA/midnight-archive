@@ -16,7 +16,7 @@
 main :-
     flag(failures, _, 0),
     config:ensure_runtime_dir,
-    config:project_path('tests/fixtures/mock_domain.pddl', Domain),
+    config:project_path('tests/fixtures/adversary_domain_snapshot.pddl', Domain),
     config:planner_exe_report(Report),
     format("~nplanner: ~q~n~n", [Report]),
     run_stale(Domain),
@@ -29,35 +29,31 @@ main :-
     ),
     (   F =:= 0 -> halt(0) ; halt(1) ).
 
-solvable_spec(spec('runner_solvable', 'mock_archive',
-                   [ loc-[vault, archive, atrium, entrance],
-                     mode-[race, recover, locked, open, sealed, unmarked, marked]
-                   ],
+solvable_spec(spec('runner_solvable', 'midnight_archive_adversaries',
+                   [ location-[vault, archive, atrium, entrance] ],
                    [ link(vault, archive),
                      link(archive, atrium),
-                     at_player(entrance),
-                     at_thief(vault),
-                     at_warden(atrium),
-                     at_core(atrium),
-                     phase(race),
-                     gate(locked),
-                     carrier(unmarked)
+                     player_at(entrance),
+                     thief_at(vault),
+                     warden_at(atrium),
+                     core_at(atrium),
+                     phase_race,
+                     exit_unsealed,
+                     carrier_unmarked
                    ],
                    [ thief_holds_core ])).
 
 % 星核不在任何地方 => take_core 永远不可用 => 无解
-unsolvable_spec(spec('runner_unsolvable', 'mock_archive',
-                     [ loc-[vault, archive, atrium, entrance],
-                       mode-[race, recover, locked, open, sealed, unmarked, marked]
-                     ],
+unsolvable_spec(spec('runner_unsolvable', 'midnight_archive_adversaries',
+                     [ location-[vault, archive, atrium, entrance] ],
                      [ link(vault, archive),
                        link(archive, atrium),
-                       at_player(entrance),
-                       at_thief(vault),
-                       at_warden(atrium),
-                       phase(race),
-                       gate(locked),
-                       carrier(unmarked)
+                       player_at(entrance),
+                       thief_at(vault),
+                       warden_at(atrium),
+                       phase_race,
+                       exit_unsealed,
+                       carrier_unmarked
                      ],
                      [ thief_holds_core ])).
 

@@ -23,14 +23,14 @@
 expected_signature(move_thief/2).
 expected_signature(move_warden/2).
 expected_signature(take_core/1).
-expected_signature(secure_core/0).
+expected_signature(secure_core/1).
 expected_signature(mark_carrier/1).
 expected_signature(seal_exit/1).
 expected_signature(capture_carrier/1).
 
 main :-
     flag(failures, _, 0),
-    config:project_path('tests/fixtures/mock_domain.pddl', Mock),
+    config:project_path('tests/fixtures/adversary_domain_snapshot.pddl', Mock),
     format("~n[execution table]~n"),
     test_table,
     format("~n[domain: mock_domain.pddl]~n"),

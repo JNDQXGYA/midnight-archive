@@ -28,19 +28,17 @@ main :-
     (   F =:= 0 -> halt(0) ; halt(1) ).
 
 % 与 mock_domain.pddl 同构的最小世界：两个对手，一个目标。
-mock_spec(spec('mock_1_1', 'mock_archive',
-               [ loc-[vault, archive, atrium, entrance],
-                 mode-[race, recover, locked, open, sealed, unmarked, marked]
-               ],
+mock_spec(spec('mock_1_1', 'midnight_archive_adversaries',
+               [ location-[vault, archive, atrium, entrance] ],
                [ link(vault, archive),
                  link(archive, atrium),
-                 at_player(entrance),
-                 at_thief(vault),
-                 at_warden(atrium),
-                 at_core(atrium),
-                 phase(race),
-                 gate(locked),
-                 carrier(unmarked)
+                 player_at(entrance),
+                 thief_at(vault),
+                 warden_at(atrium),
+                 core_at(atrium),
+                 phase_race,
+                 exit_unsealed,
+                 carrier_unmarked
                ],
                [ thief_holds_core ])).
 
@@ -49,10 +47,10 @@ test_render(Spec) :-
             sub_string(T, _, _, _, "(define (problem mock_1_1)") ),
           'render: problem header'),
     check(( render_problem(Spec, T),
-            sub_string(T, _, _, _, "(:domain mock_archive)") ),
+            sub_string(T, _, _, _, "(:domain midnight_archive_adversaries)") ),
           'render: domain name'),
     check(( render_problem(Spec, T),
-            sub_string(T, _, _, _, "(at_thief vault)") ),
+            sub_string(T, _, _, _, "(thief_at vault)") ),
           'render: init fact'),
     check(( render_problem(Spec, T),
             sub_string(T, _, _, _, "vault archive atrium entrance - loc") ),
@@ -65,7 +63,7 @@ test_render(Spec) :-
           'render: no BOM').
 
 test_solve(Spec) :-
-    config:project_path('tests/fixtures/mock_domain.pddl', Domain),
+    config:project_path('tests/fixtures/adversary_domain_snapshot.pddl', Domain),
     check(( exists_file(Domain) ), 'solve: mock domain file present'),
     check(( solve_problem(Spec, [domain(Domain), version(1)], Outcome),
             Outcome == plan([ move_thief(vault,archive),

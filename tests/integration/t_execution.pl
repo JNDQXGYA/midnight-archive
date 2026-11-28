@@ -36,23 +36,23 @@ main :-
 % 与 mock_domain.pddl 同构的世界：星核在中庭，盗影在库房，守夜人在档案室。
 base_atoms([ link(vault, archive),
              link(archive, atrium),
-             at_player(entrance),
-             at_thief(vault),
-             at_warden(atrium),
-             at_core(atrium),
-             phase(race),
-             gate(locked),
-             carrier(unmarked) ]).
+             player_at(entrance),
+             thief_at(vault),
+             warden_at(atrium),
+             core_at(atrium),
+             phase_race,
+             exit_unsealed,
+             carrier_unmarked ]).
 
 test_validate :-
     base_atoms(Atoms),
     check(legal_action(Atoms, move_thief(vault,archive)), 'legal: move along a link'),
     check(\+ legal_action(Atoms, move_thief(vault,atrium)), 'illegal: no link vault->atrium'),
     check(\+ legal_action(Atoms, take_core(vault)), 'illegal: core is not in the vault'),
-    check(\+ legal_action(Atoms, secure_core), 'illegal: thief holds no core yet'),
+    check(\+ legal_action(Atoms, secure_core(vault)), 'illegal: thief holds no core yet'),
     check(\+ legal_action(Atoms, capture_carrier(atrium)), 'illegal: nothing marked/sealed'),
     check(( missing_preconditions(Atoms, take_core(vault), Missing),
-            Missing == [at_core(vault)] ),
+            Missing == [core_at(vault)] ),
           'diagnostics: reports exactly the missing atom'),
     check(( missing_preconditions(Atoms, fly_away(x), Missing2),
             Missing2 == [unknown_action(fly_away(x))] ),
@@ -61,20 +61,20 @@ test_validate :-
 test_apply :-
     base_atoms(Atoms0),
     apply_action(Atoms0, move_thief(vault,archive), Atoms1),
-    check(( memberchk(at_thief(archive), Atoms1),
-            \+ memberchk(at_thief(vault), Atoms1) ),
+    check(( memberchk(thief_at(archive), Atoms1),
+            \+ memberchk(thief_at(vault), Atoms1) ),
           'apply: move updates the position'),
     apply_action(Atoms0, take_core(atrium), Atoms2),
     check(( memberchk(thief_holds_core, Atoms2),
-            \+ memberchk(at_core(atrium), Atoms2) ),
+            \+ memberchk(core_at(atrium), Atoms2) ),
           'apply: take_core moves the core to the thief'),
     apply_action(Atoms0, mark_carrier(atrium), Atoms3),
-    check(( memberchk(carrier(marked), Atoms3),
-            \+ memberchk(carrier(unmarked), Atoms3) ),
+    check(( memberchk(carrier_marked, Atoms3),
+            \+ memberchk(carrier_unmarked, Atoms3) ),
           'apply: mark replaces the previous carrier status'),
     apply_action(Atoms0, seal_exit(atrium), Atoms4),
-    check(( memberchk(gate(sealed), Atoms4),
-            \+ memberchk(gate(locked), Atoms4) ),
+    check(( memberchk(exit_sealed, Atoms4),
+            \+ memberchk(exit_unsealed, Atoms4) ),
           'apply: seal replaces the previous gate state').
 
 test_simulate :-
@@ -97,7 +97,7 @@ test_turn_legal :-
                                    move_thief(archive,atrium)])) ],
                    Events, Atoms),
     check(Events == [enemy_action(move_thief(vault,archive))], 'turn: one action per turn'),
-    check(memberchk(at_thief(archive), Atoms), 'turn: world advanced by exactly one step').
+    check(memberchk(thief_at(archive), Atoms), 'turn: world advanced by exactly one step').
 
 test_turn_illegal :-
     plan_cache_clear,
@@ -108,10 +108,10 @@ test_turn_illegal :-
                      outcome(plan([take_core(vault)])) ],
                    Events, Atoms),
     check(( Events == [ invalid_action(take_core(vault)),
-                        fallback(inconsistent_plan([at_core(vault)])),
+                        fallback(inconsistent_plan([core_at(vault)])),
                         enemy_action(move_thief(vault,archive)) ] ),
           'turn: illegal head rejected, fallback moves deterministically'),
-    check(memberchk(at_thief(archive), Atoms), 'turn: fallback still changes the world').
+    check(memberchk(thief_at(archive), Atoms), 'turn: fallback still changes the world').
 
 test_turn_no_solution :-
     plan_cache_clear,
@@ -124,7 +124,7 @@ test_turn_no_solution :-
     check(( Events == [ fallback(no_solution),
                         enemy_action(move_thief(vault,archive)) ] ),
           'turn: no_solution falls back towards the target'),
-    check(memberchk(at_thief(archive), Atoms), 'turn: atoms updated after fallback').
+    check(memberchk(thief_at(archive), Atoms), 'turn: atoms updated after fallback').
 
 test_turn_cache :-
     plan_cache_clear,
@@ -142,7 +142,7 @@ test_turn_cache :-
                    E2, Atoms2),
     check(E2 == [enemy_action(move_thief(archive,atrium))],
           'cache: second turn reuses the stored tail instead of replanning'),
-    check(memberchk(at_thief(atrium), Atoms2), 'cache: cached step really executed').
+    check(memberchk(thief_at(atrium), Atoms2), 'cache: cached step really executed').
 
 check(Goal, Name) :-
     (   catch(call(Goal), E, (format("  error: ~q~n", [E]), fail))

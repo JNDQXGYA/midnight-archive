@@ -34,44 +34,52 @@
 % ---------------------------------------------------------------------------
 
 preconditions(move_thief(From, To),
-              [ at_thief(From), link(From, To) ]).
+              [ thief_at(From), link(From, To) ]).
 
 preconditions(move_warden(From, To),
-              [ at_warden(From), link(From, To) ]).
+              [ warden_at(From), link(From, To) ]).
 
 preconditions(take_core(Loc),
-              [ phase(race), at_thief(Loc), at_core(Loc) ]).
+              [ phase_race, thief_at(Loc), core_at(Loc) ]).
 
-preconditions(secure_core,
-              [ phase(race), thief_holds_core, at_thief(vault) ]).
+preconditions(secure_core(Loc),
+              [ phase_race, thief_at(Loc), thief_holds_core, vault_room(Loc) ]).
 
 preconditions(mark_carrier(Loc),
-              [ phase(recover), at_thief(Loc), at_player(Loc) ]).
+              [ phase_recover, thief_at(Loc), player_at(Loc),
+                player_has_core, carrier_unmarked ]).
 
 preconditions(seal_exit(Loc),
-              [ phase(recover), at_warden(Loc), gate(locked) ]).
+              [ phase_recover, warden_at(Loc), exit(Loc), exit_unsealed ]).
 
 preconditions(capture_carrier(Loc),
-              [ phase(recover), at_warden(Loc), at_player(Loc),
-                carrier(marked), gate(sealed) ]).
+              [ phase_recover, warden_at(Loc), player_at(Loc),
+                player_has_core, carrier_marked, exit_sealed ]).
 
 % effect(Action, Added, Deleted)
 % Deleted 的元素是 del(Atom) 或 del_all(Functor)，后者用于"状态机赋值"，
-% 例如标记从 unmarked 变成 marked 时要先把旧的 carrier/1 删干净。
+% 例如标记从 carrier_unmarked 变成 carrier_marked 时要先把旧的删掉。
+% 这块必须和 adversary_domain.pddl 逐条对应，改动要同步。
 effect(move_thief(From, To),
-       [ at_thief(To) ], [ del(at_thief(From)) ]).
+       [ thief_at(To) ], [ del(thief_at(From)) ]).
 
 effect(move_warden(From, To),
-       [ at_warden(To) ], [ del(at_warden(From)) ]).
+       [ warden_at(To) ], [ del(warden_at(From)) ]).
 
 effect(take_core(Loc),
-       [ thief_holds_core ], [ del(at_core(Loc)) ]).
+       [ thief_holds_core ], [ del(core_at(Loc)) ]).
 
-effect(secure_core,
-       [ core_secured ], []).
+effect(secure_core(_Loc),
+       [ core_secured ], [ del(thief_holds_core) ]).
 
-effect(mark_carrier(_),
-       [ carrier(marked) ], [ del_all(carrier) ]).
+effect(mark_carrier(_Loc),
+       [ carrier_marked ], [ del(carrier_unmarked) ]).
+
+effect(seal_exit(_Loc),
+       [ exit_sealed ], [ del(exit_unsealed) ]).
+
+effect(capture_carrier(_Loc),
+       [ captured, core_recovered ], [ del(player_has_core) ]).
 
 effect(seal_exit(_),
        [ gate(sealed) ], [ del_all(gate) ]).

@@ -1,6 +1,6 @@
 # INTERFACE.md — 模块接口契约（草案，待确认为准）
 
-负责人：丙（规划集成）。**这份文件是提案，不是定稿。** 请甲确认第 1 节，乙确认第 2 节，确认后在 PR 里改成"已冻结"并注明日期。定稿后任何改动都要同步改 `planner_bridge.pl` 和相关测试。
+负责人：丙（规划集成）。**第 2 节已由乙的实现冻结**（见该节），第 1 节仍待甲确认。任何改动都要同步改 `planner_bridge.pl`、`adversary_execution.pl` 和相关测试。
 
 目标只有一个：让"世界状态 → problem.pddl → 计划 → 执行"这条链路上，只有**一处**定义每个事实叫什么名字。
 
@@ -15,13 +15,13 @@
 ```prolog
 % legal_state_snapshot(-Atoms) is det.
 % Atoms 是当前世界真值的列表，元素形状与 PDDL 原子一致。
-legal_state_snapshot([ at_player(entrance),
-                       at_thief(vault),
-                       at_warden(archive),
-                       at_core(observatory),
-                       phase(race),
-                       gate(locked),
-                       carrier(unmarked),
+legal_state_snapshot([ player_at(entrance),
+                       thief_at(vault),
+                       warden_at(archive),
+                       core_at(observatory),
+                       phase_race,
+                       exit_unsealed,
+                       carrier_unmarked,
                        link(vault,archive),
                        ... ]).
 ```
@@ -47,9 +47,9 @@ legal_state_snapshot([ at_player(entrance),
 
 | 快照原子 | PDDL 原子 |
 |---|---|
-| `at_player(L)` | `(at_player L)` |
-| `at_thief(L)` / `at_warden(L)` | `(at_thief L)` / `(at_warden L)` |
-| `at_core(L)` | `(at_core L)` |
+| `player_at(L)` | `(at_player L)` |
+| `thief_at(L)` / `warden_at(L)` | `(at_thief L)` / `(at_warden L)` |
+| `core_at(L)` | `(at_core L)` |
 | `phase(P)` | `(phase P)` |
 | `gate(S)` | `(gate S)` |
 | `carrier(S)` | `(carrier S)` |
@@ -69,64 +69,70 @@ legal_state_snapshot([ at_player(entrance),
 
 ---
 
-## 2. 乙：PDDL 领域契约（待确认）
+## 2. 乙：PDDL 领域契约（已冻结）
 
-### 2.1 建议的类型与谓词
+**状态：已由乙实现并冻结。** 以分支 `feature/pddl-adversaries` 的 `adversary_domain.pddl` 为准，
+下面是摘要，冲突时以文件为准。`tests/fixtures/adversary_domain_snapshot.pddl` 是逐字快照，
+`t_domain.pl` 会比对它的动作签名与执行层是否一致（当前 7/7 通过）。
+
+### 2.1 类型与谓词
 
 ```pddl
-(:requirements :strips :typing)
-
-(:types loc thing mode - object)
+(:types location)
 
 (:predicates
-    (link ?a ?b - loc)
-    (at_player ?l - loc)
-    (at_thief ?l - loc)
-    (at_warden ?l - loc)
-    (at_core ?l - loc)
-    (phase ?m - mode)                 ; race | recover
-    (gate ?m - mode)                  ; locked | open | sealed
-    (carrier ?m - mode)               ; unmarked | marked
+    (link ?from ?to - location)
+    (exit ?place - location)
+    (vault_room ?place - location)
+    (thief_at ?place - location)
+    (warden_at ?place - location)
+    (player_at ?place - location)
+    (core_at ?place - location)
     (thief_holds_core)
+    (player_has_core)
     (core_secured)
-    (core_recovered))
+    (core_recovered)
+    (phase_race)
+    (phase_recover)
+    (carrier_marked)
+    (carrier_unmarked)
+    (exit_unsealed)
+    (exit_sealed)
+    (captured))
 ```
 
 要点：
 
-- `:requirements` 写 `(:strips :typing)`，不要抄课程样例的 `:adl`。
-- 枚举值（`race`、`locked`、`marked` 等）作为 `mode` 类型的**对象**放进 `:objects`，不要用 0 元谓词堆砌（0 元谓词可用，但一个状态机用参数化更好读）。
-- **前置条件里不能出现 `not`**（pyperplan 硬限制，已实测：`SemanticError: unknown predicate not`）。需要"某物还没被拿"这类条件时，用状态谓词的取值来表达，例如 `(core loose)` 而不是 `(not (holding_core))`。
-- 效果里用 `not` 是允许的（唯一表达删除的方式）。
+- 只有一种对象类型 `location`；阶段、闸门、标记这些状态用成对的 0 元谓词表示
+  （pyperplan 支持 0 元谓词，已实测）。
+- **前置条件里不能出现 `not`**（pyperplan 硬限制，实测报 `SemanticError: unknown predicate not`）。
+  "某物还没被拿"这类条件用成对谓词表达：`carrier_unmarked` / `carrier_marked`、
+  `exit_unsealed` / `exit_sealed`；效果里再用 `not` 删掉旧的那个。
+- `:requirements` 是 `(:strips :typing)`。
 
 ### 2.2 动作签名
 
 | 动作 | 参数 | 前置 | 效果 |
 |---|---|---|---|
-| `move_thief` | `?from ?to - loc` | `at_thief(?from)`, `link(?from,?to)` | 更新 `at_thief` |
-| `move_warden` | `?from ?to - loc` | `at_warden(?from)`, `link(?from,?to)` | 更新 `at_warden` |
-| `take_core` | `?l - loc` | `phase(race)`, `at_thief(?l)`, `at_core(?l)` | 删 `at_core`，加 `thief_holds_core` |
-| `secure_core` | 无 | `phase(race)`, `thief_holds_core`, `at_thief(vault)` | 加 `core_secured` |
-| `mark_carrier` | `?l - loc` | `phase(recover)`, `at_thief(?l)`, `at_player(?l)` | `carrier(marked)` |
-| `seal_exit` | `?g - loc` | `phase(recover)`, `at_warden(?g)`, `gate(locked)` | `gate(sealed)` |
-| `capture_carrier` | `?l - loc` | `phase(recover)`, `at_warden(?l)`, `at_player(?l)`, `carrier(marked)`, `gate(sealed)` | `core_recovered` |
+| `move_thief` | `(?from ?to - location)` | `thief_at(?from)`, `link(?from,?to)` | 更新 `thief_at` |
+| `move_warden` | `(?from ?to - location)` | `warden_at(?from)`, `link(?from,?to)` | 更新 `warden_at` |
+| `take_core` | `(?loc - location)` | `phase_race`, `thief_at(?loc)`, `core_at(?loc)` | 删 `core_at`，加 `thief_holds_core` |
+| `secure_core` | `(?loc - location)` | `phase_race`, `thief_at(?loc)`, `thief_holds_core`, `vault_room(?loc)` | 删 `thief_holds_core`，加 `core_secured` |
+| `mark_carrier` | `(?loc - location)` | `phase_recover`, `thief_at(?loc)`, `player_at(?loc)`, `player_has_core`, `carrier_unmarked` | 删 `carrier_unmarked`，加 `carrier_marked` |
+| `seal_exit` | `(?loc - location)` | `phase_recover`, `warden_at(?loc)`, `exit(?loc)`, `exit_unsealed` | 删 `exit_unsealed`，加 `exit_sealed` |
+| `capture_carrier` | `(?loc - location)` | `phase_recover`, `warden_at(?loc)`, `player_at(?loc)`, `player_has_core`, `carrier_marked`, `exit_sealed` | 删 `player_has_core`，加 `captured`、`core_recovered` |
 
-两个说明：
+一个留给乙的设计问题（不影响丙开工）：`mark_carrier` 要求盗影和玩家同房间，而玩家每回合
+都在移动，实际只在玩家停下来开锁/逃跑时才可能触发。要么接受这个限制并在报告里说明，
+要么改成相邻投射（前置用 `link(?loc, ?playerloc)`）。乙定，丙按定下来的写校验。
 
-- `secure_core` 里写死 `vault` 是因为地图已冻结；如果要通用化，加一个 `(vault ?l)` 一元谓词即可，但动作数别再加了。
-- `mark_carrier` 现在要求同房间，而玩家每回合都在动，实际很难触发。建议改成**相邻**（`link(?l,?playerloc)`）或者在参数里直接传玩家位置，否则"标记 → 抓捕"那条协作链演不出来。这个由乙决定，但请在 PR 里说明选了哪种。
+### 2.3 交付文件
 
-### 2.3 需要交付的文件
-
-| 文件 | 内容 |
-|---|---|
-| `adversary_domain.pddl` | 上面这套，能被 pyperplan 2.1 求解 |
-| `adversary_problem.pddl` | 游戏开始时的默认问题（race 阶段） |
-| `pddl_cases/case_default.pddl` | 默认争夺 + 守出口 |
-| `pddl_cases/case_recover.pddl` | 玩家拿走星核后的目标变化 |
-| `pddl_cases/case_coop.pddl` | 标记 + 封锁 + 抓捕的完整协作 |
-
-桥接层的测试只需要 `adversary_domain.pddl`；其余我用来做执行层和"无解回退"的回归用例。
+| 文件 | 内容 | 状态 |
+|---|---|---|
+| `adversary_domain.pddl` | 上面这套 | 乙已提交（分支未合并） |
+| `adversary_problem.pddl` | 游戏开始时的默认问题（race 阶段） | 乙已提交 |
+| `pddl_cases/` | 默认争夺、目标变化、协作三套 | 乙已提交 |
 
 ---
 
@@ -195,6 +201,6 @@ game_message(Atom)        % 其他要显示的消息
 |---|---|---|---|
 | 1 | 第 1 节的谓词名与 `legal_state_snapshot/1` 形状 | 甲 | 12/01 |
 | 2 | 第 1.4 节的版本递增规则 | 甲 | 12/01 |
-| 3 | 第 2 节的类型、谓词、动作签名 | 乙 | 12/01 |
-| 4 | `mark_carrier` 是否改成相邻投射 | 乙 | 12/01 |
+| 3 | 第 2 节的类型、谓词、动作签名 | 乙 | 已完成（见 §2） |
+| 4 | `mark_carrier` 是否改成相邻投射 | 乙 | 待定（见 §2.2） |
 | 5 | 事件项是否需要增加或改名 | 丁 | 12/03 |
